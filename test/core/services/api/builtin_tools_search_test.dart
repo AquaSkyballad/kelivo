@@ -100,6 +100,17 @@ void main() {
             expected: true,
           ),
           (
+            name: 'DeepSeek Chat Completions',
+            id: 'DeepSeek',
+            baseUrl: 'https://api.deepseek.com/v1',
+            kind: ProviderKind.openai,
+            useResponseApi: false,
+            modelId: 'deepseek-flash',
+            oauth: null,
+            providerName: null,
+            expected: true,
+          ),
+          (
             name: 'OpenRouter chat',
             id: 'OpenRouter',
             baseUrl: 'https://openrouter.ai/api/v1',

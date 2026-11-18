@@ -260,6 +260,13 @@ abstract class BuiltInToolsHelper {
   static bool isDeepSeekProvider(ProviderConfig? cfg) =>
       ProviderConfig.isDeepSeekConfig(cfg);
 
+  /// DeepSeek's hosted web search. Not OpenAI's `web_search`: Chat Completions
+  /// rejects that type (HTTP 422) and Responses ignores it on every model but
+  /// `deepseek-v4-pro`, so the OpenAI name searched nothing. This one works on
+  /// all three transports, takes no options, and cannot be declared beside
+  /// `web_search`.
+  static const String deepSeekSearchToolType = 'deepseek_web_search';
+
   /// Whether [cfg] talks to Anthropic itself. The Anthropic-hosted server tools
   /// only work there: a Claude-compatible relay either rejects the tool types
   /// outright or answers from an account pool, and results from a pool cannot
@@ -359,6 +366,8 @@ abstract class BuiltInToolsHelper {
               ).toLowerCase().startsWith('openai/');
         }
         if (isOpenRouterProvider(cfg)) return true;
+        // DeepSeek hosts its own web tools on both transports.
+        if (isDeepSeekProvider(cfg)) return true;
         // Native Grok search is only available as Responses tools.
         if (isGrokProvider(cfg)) return cfg.useResponseApi == true;
         if (cfg.useResponseApi == true) return true;
@@ -437,6 +446,10 @@ abstract class BuiltInToolsHelper {
     if (!supportsBuiltInSearchForModel(cfg: cfg, modelId: modelId)) {
       return BuiltInToolsRequestPayload(tools: tools);
     }
+    if (isDeepSeekProvider(cfg)) {
+      add({'type': deepSeekSearchToolType});
+      return BuiltInToolsRequestPayload(tools: tools);
+    }
     if (isDashScopeProvider(cfg) || isArkProvider(cfg)) {
       add({'type': 'web_search'});
       return BuiltInToolsRequestPayload(tools: tools);
@@ -493,6 +506,16 @@ abstract class BuiltInToolsHelper {
             if (supported.contains(name)) _openRouterServerTool(name)!,
         ],
       );
+    }
+    if (isDeepSeekProvider(cfg)) {
+      // Chat Completions has no hosted tool besides DeepSeek's own web search.
+      return configured.contains(BuiltInToolNames.search)
+          ? const BuiltInToolsRequestPayload(
+              tools: <Map<String, dynamic>>[
+                <String, dynamic>{'type': deepSeekSearchToolType},
+              ],
+            )
+          : const BuiltInToolsRequestPayload();
     }
     if (!configured.contains(BuiltInToolNames.search)) {
       return const BuiltInToolsRequestPayload();
